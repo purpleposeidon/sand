@@ -67,6 +67,21 @@ private:
     }
   }
 
+  bool touches_air(int x, int y) {
+    for (int dx = -1; dx <= 1; dx++) {
+      for (int dy = -1; dy <= 1; dy++) {
+        if (dx != 0 && dy != 0) {
+          //Don't check diagonals
+          continue;
+        }
+        if (now.get(x+dx, y+dy, ROCK) == AIR) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
 public:
   SandGrid() : now(a), next(b), parity(false) {}
 
@@ -91,13 +106,41 @@ public:
       for (int y = 0; y < grid_size; y++) {
         CellType now_cell = now.get(x, y);
         CellType next_cell = now_cell; //By default, blocks carry over
-        if (now_cell == AIR) continue;
-        if (now_cell == SAND) {
-          if (now.get(x, y+1) == AIR) {
-            //fall down
-            next.set(x, y+1, SAND);
-            next_cell = AIR;
-          }
+        switch (next_cell) {
+          case AIR: continue;
+          case SAND:
+            if (now.get(x, y+1) == AIR) {
+              //fall down
+              next.set(x, y+1, SAND);
+              next_cell = AIR;
+            }
+            break;
+          case INACTIVE_WATER:
+            if (touches_air(x, y)) {
+              next_cell = EXPOSED_WATER;
+            }
+            break;
+          case EXPOSED_WATER:
+            if (!touches_air(x, y)) {
+              next_cell = INACTIVE_WATER;
+            }
+            if (now.get(x, y+1, ROCK) == AIR) {
+              //fall down :O
+              next.set(x, y+1, EXPOSED_WATER);
+              next_cell = AIR;
+            }
+            else if (now.get(x-1, y, ROCK) == AIR
+                && now.get(x-1, y+1, ROCK) == AIR) {
+              //spill over
+              next.set(x-1, y+1, EXPOSED_WATER);
+              next_cell = AIR;
+            }
+            else if (now.get(x+1, y, ROCK) == AIR
+                && now.get(x+1, y+1, ROCK) == AIR) {
+              //spill over
+              next.set(x+1, y+1, EXPOSED_WATER);
+              next_cell = AIR;
+            }
         }
         next.set(x, y, next_cell);
       }
