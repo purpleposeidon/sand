@@ -11,6 +11,8 @@ enum CellType {
   AIR = FIRST_CELL_TYPE,
   SAND,
   ROCK,
+  EXPOSED_WATER,
+  INACTIVE_WATER,
   CELL_TYPE_COUNT //Leave last
 };
 
