@@ -293,8 +293,9 @@ void app_loop(SDL_Surface *screen) {
           if (event.key.keysym.unicode == L'q') {
             return;
           }
-          place_type = CellData::lookup(event.key.keysym.unicode);
-          if (place_type != BAD_CELL_TYPE) {
+          CellType new_type = CellData::lookup(event.key.keysym.unicode);
+          if (new_type != BAD_CELL_TYPE) {
+            place_type = new_type;
             grid.mouse_set(place_type);
           }
         }
