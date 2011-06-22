@@ -1,7 +1,7 @@
 
 
 CPP = g++ -Wall -ansi -g
-LIBS = $(shell sdl-config --libs)
+LIBS = $(shell sdl-config --libs) -lSDL_gfx
 
 all: CellData.o main.o
 	$(CPP) $(LIBS) -o sand *.o

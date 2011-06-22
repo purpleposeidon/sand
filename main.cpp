@@ -1,8 +1,13 @@
 
 
-#include <SDL/SDL.h>
 #include <iostream>
+#include <deque>
+#include <stack>
+#include <algorithm>
 #include <assert.h>
+
+#include <SDL/SDL.h>
+#include <SDL/SDL_gfxPrimitives.h>
 
 #include "CellData.h"
 #include "common.h"
@@ -47,6 +52,88 @@ public:
 };
 
 
+struct Coord {
+  int x, y;
+  Coord(int X, int Y) : x(X), y(Y) {}
+};
+
+
+class FluidSimulator {
+private:
+  CellGrid src;
+  deque<Coord> exposed;
+  stack<Coord> branch;
+
+  inline void add(int x, int y) {
+    if (src.get(x, y, AIR) == EXPOSED_WATER) {
+      exposed.push_back(Coord(x, y));
+      src.set(x, y, AIR);
+    }
+  }
+
+  void flood_fill(int x, int y) {
+    //Use scanline flood fill aglorithm to locate EXPOSED_WATER edges
+    branch.push(Coord(x, y));
+    
+    while (branch.size()) {
+      Coord top = branch.top();
+      branch.pop();
+      x = top.x, y = top.y;
+      //jump to end
+      int y1 = y;
+      while (src.get(x, y1, AIR) == INACTIVE_WATER) y1--;
+      add(x, y1);
+      y1++;
+
+      bool span_left = false, span_right = false;
+      while (y1 < grid_size && src.get(x, y1, AIR) == INACTIVE_WATER) {
+        src.set(x, y1, ROCK);
+        add(x-1, y1);
+        add(x+1, y1);
+
+        if (!span_left && src.get(x-1, y1, AIR) == INACTIVE_WATER) {
+          branch.push(Coord(x-1, y1));
+          span_left = true;
+        }
+        else if (span_left && src.get(x-1, y1, AIR) != INACTIVE_WATER) {
+          span_left = false;
+        }
+
+        if (!span_right && src.get(x+1, y1, AIR) == INACTIVE_WATER) {
+          branch.push(Coord(x+1, y1));
+          span_right = true;
+        }
+        else if (span_right && src.get(x+1, y1, AIR) != INACTIVE_WATER) {
+          span_right = false;
+        }
+
+        y++;
+      }
+      add(x, y1);
+    }
+  }
+
+public:
+  void run(CellGrid &orig_grid) {
+    src = orig_grid; //Make a copy
+    for (int x = 0; x < grid_size; x++) {
+      for (int y = 0; y < grid_size; y++) {
+        if (orig_grid.get(x, y) == EXPOSED_WATER) {
+          exposed.clear();
+          flood_fill(x, y);
+          sort(exposed.begin(), exposed.end(), height_sorter);
+          int s = exposed.size();
+          if (s) cout << "Found: " << s << endl;
+        }
+      }
+    }
+  }
+
+  static bool height_sorter(Coord a, Coord b) {
+    return a.y < b.y;
+  }
+};
+
 
 
 class SandGrid {
@@ -54,6 +141,7 @@ private:
   CellGrid a, b;
   CellGrid &now, &next;
   bool parity;
+  FluidSimulator fluid_sim;
 
   void toggle_parity() {
     parity = !parity;
@@ -81,7 +169,6 @@ private:
     }
     return false;
   }
-
 public:
   SandGrid() : now(a), next(b), parity(false) {}
 
@@ -89,13 +176,14 @@ public:
     for (int x = 0; x < grid_size; x++) {
       for (int y = 0; y < grid_size; y++) {
         SDL_Rect rect;
-        rect.x = x*block_pixel_size;
-        rect.y = y*block_pixel_size;
+        rect.x = x*block_pixel_size+1;
+        rect.y = y*block_pixel_size+1;
         rect.w = block_pixel_size;
         rect.h = block_pixel_size;
         SDL_FillRect(surface, &rect, CellData::color(next.get(x, y)));
       }
     }
+    rectangleRGBA(surface, /*dimensions*/ 0, 0, screen_size+1, screen_size+1, /*color*/ 0x80, 0x80, 0x80, 0xFF);
 
     SDL_UpdateRect(surface, 0, 0, 0, 0); //updates entire screen. Economical!
   }
@@ -108,6 +196,10 @@ public:
         CellType next_cell = now_cell; //By default, blocks carry over
         switch (next_cell) {
           case AIR: continue;
+          case BAD_CELL_TYPE:
+          case CELL_TYPE_COUNT:
+            next_cell = ROCK;
+            break;
           case SAND:
             if (now.get(x, y+1) == AIR) {
               //fall down
@@ -141,10 +233,13 @@ public:
               next.set(x+1, y+1, EXPOSED_WATER);
               next_cell = AIR;
             }
+            break;
+          case ROCK: break; //BORING
         }
         next.set(x, y, next_cell);
       }
     }
+    fluid_sim.run(now);
     toggle_parity();
   }
 
@@ -166,6 +261,8 @@ public:
     set(mouse_x/block_pixel_size, mouse_y/block_pixel_size, cell_type);
   }
 };
+
+
 
 
 void sdl_error() {
@@ -241,7 +338,7 @@ int main() {
     sdl_error();
   }
 
-  SDL_Surface *screen = SDL_SetVideoMode(screen_size, screen_size, 0, 0);
+  SDL_Surface *screen = SDL_SetVideoMode(screen_size+2, screen_size+2, 0, 0);
   
   if (screen == NULL) {
     sdl_error();
