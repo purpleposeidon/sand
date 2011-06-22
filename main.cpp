@@ -1,6 +1,7 @@
 
 
 #include <iostream>
+#include <iterator>
 #include <deque>
 #include <stack>
 #include <algorithm>
@@ -55,6 +56,22 @@ public:
 struct Coord {
   int x, y;
   Coord(int X, int Y) : x(X), y(Y) {}
+  bool operator<(const Coord &b) const {
+    if (y == b.y) {
+      return x < b.x;
+    }
+    return y < b.y;
+  }
+
+  bool operator==(const Coord&b) const {
+    return x == b.x && y == b.y;
+  }
+
+  friend std::ostream& operator<<(std::ostream &fd, const Coord &r) {
+    fd << r.x << "," << r.y;
+    return fd;
+  }
+
 };
 
 
@@ -118,12 +135,15 @@ public:
     src = orig_grid; //Make a copy
     for (int x = 0; x < grid_size; x++) {
       for (int y = 0; y < grid_size; y++) {
-        if (orig_grid.get(x, y) == EXPOSED_WATER) {
+        if (src.get(x, y) == EXPOSED_WATER) {
           exposed.clear();
           flood_fill(x, y);
-          sort(exposed.begin(), exposed.end(), height_sorter);
-          int s = exposed.size();
-          if (s) cout << "Found: " << s << endl;
+          sort(exposed.begin(), exposed.end());
+          unique(exposed.begin(), exposed.end());
+          cout << "Exposed water blocks: ";
+          ostream_iterator<Coord> output(cout, " ");
+          copy(exposed.begin(), exposed.end(), output);
+          cout << endl;
         }
       }
     }
