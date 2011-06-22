@@ -50,6 +50,19 @@ public:
     }
   }
 
+  void draw(SDL_Surface *surface) {
+    for (int x = 0; x < grid_size; x++) {
+      for (int y = 0; y < grid_size; y++) {
+        SDL_Rect rect;
+        rect.x = x*block_pixel_size+1;
+        rect.y = y*block_pixel_size+1;
+        rect.w = block_pixel_size;
+        rect.h = block_pixel_size;
+        SDL_FillRect(surface, &rect, CellData::color(get(x, y)));
+      }
+    }
+  }
+
 };
 
 
@@ -193,18 +206,8 @@ public:
   SandGrid() : now(a), next(b), parity(false) {}
 
   void draw(SDL_Surface *surface) {
-    for (int x = 0; x < grid_size; x++) {
-      for (int y = 0; y < grid_size; y++) {
-        SDL_Rect rect;
-        rect.x = x*block_pixel_size+1;
-        rect.y = y*block_pixel_size+1;
-        rect.w = block_pixel_size;
-        rect.h = block_pixel_size;
-        SDL_FillRect(surface, &rect, CellData::color(next.get(x, y)));
-      }
-    }
+    next.draw(surface);
     rectangleRGBA(surface, /*dimensions*/ 0, 0, screen_size+1, screen_size+1, /*color*/ 0x80, 0x80, 0x80, 0xFF);
-
     SDL_UpdateRect(surface, 0, 0, 0, 0); //updates entire screen. Economical!
   }
 
