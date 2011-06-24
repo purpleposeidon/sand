@@ -13,6 +13,8 @@ enum CellType {
   ROCK,
   EXPOSED_WATER,
   INACTIVE_WATER,
+  CLONER,
+  DESTROYER,
   CELL_TYPE_COUNT //Leave last
 };
 

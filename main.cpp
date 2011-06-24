@@ -333,6 +333,15 @@ public:
               next_cell = AIR;
             }
             break;
+          case CLONER:
+            next.set(x, y+1, now.get(x, y-1, CLONER));
+            break;
+          case DESTROYER:
+            for (int dx = -1; dx != 2; dx++) {
+              for (int dy = -1; dy != 2; dy++) {
+                next.set(x+dx, y+dy, AIR);
+              }
+            }
           case ROCK: break; //BORING
         }
         next.set(x, y, next_cell);
