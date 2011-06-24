@@ -413,7 +413,7 @@ void app_loop(SDL_Surface *screen) {
   CellType place_type = SAND;
   bool do_update = true;
 
-  SDL_AddTimer(50, draw_timer_callback, NULL); //triggers a draw event every 50 ms
+  SDL_AddTimer(update_speed, draw_timer_callback, NULL); //triggers a draw event every 50 ms
 
   while (SDL_WaitEvent(&event)) {
     switch (event.type) {
