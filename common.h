@@ -5,8 +5,8 @@
 #include <iostream>
 
 
-const int grid_size = 80;
-const int block_pixel_size = 10;
+const int grid_size = 80/4;
+const int block_pixel_size = 10*4;
 const int screen_size = grid_size*block_pixel_size;
 const int update_speed = 20;
 
@@ -22,7 +22,7 @@ struct Coord {
   bool operator<(const Coord &b) const;
   bool operator==(const Coord&b) const;
   friend std::ostream& operator<<(std::ostream &fd, const Coord &r);
-  
+
   Coord up();
   Coord down();
   Coord left();

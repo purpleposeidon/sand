@@ -263,6 +263,7 @@ void SandGrid::update(bool do_physics) {
     simple_physics_pass();
     replicator_physics_pass();
     fluid_sim.run(now);
+    now.ticks = ++next.ticks;
   }
   toggle_parity();
 }

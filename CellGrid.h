@@ -37,12 +37,19 @@ public:
   
   void draw(SDL_Surface *surface);
 
+  int ticks;
 };
 
 struct CellBox {
 public:
   CellType up, down, left, right;
   CellBox(CellGrid &src, Coord w);
+  bool any(CellType c);
+  bool all(CellType c);
+  int count(CellType c);
+  int find(CellType c, int skip = 0);
+  int find_air(int skip = 0);
+  CellType get(int d);
 };
 
 #endif /* CELLGRID_H */

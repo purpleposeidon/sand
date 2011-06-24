@@ -1,4 +1,7 @@
 #include "CellData.h"
+#include "assert.h"
+#include <iostream>
+using namespace std;
 
 
 CellData cell_data[] = {
