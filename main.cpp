@@ -35,6 +35,7 @@ struct Coord {
     return fd;
   }
 
+  //These are totally correct.
   Coord up() { return Coord(x, y+1); }
   Coord down() { return Coord(x, y-1); }
   Coord left() { return Coord(x-1, y); }
@@ -120,7 +121,8 @@ private:
 
   void flood_fill(int x, int y) {
     //Use scanline flood fill aglorithm to locate EXPOSED_WATER edges
-    //This algorithm is From Somewhere on Siggraph.
+    //This algorithm is from Somewhere on Siggraph I Think.
+    //Sorry, I lost the original URL...
     add(x, y);
     //We should be at an EXPOSED_WATER. Find the water we're covering.
     push(x+1, y);
@@ -178,7 +180,7 @@ private:
     if (move.y + 1 >= target.y) return; 
     //We need to be considerate of the order we check.
     static char parity = 0;
-    parity++;
+    parity++; //XXX should check if this actually does anything
     bool EVEN = parity % 2, ODD = !EVEN;
     if (grid.get(target.down(), ROCK) == AIR) {
       //(I don't expect this will happen ever?)
