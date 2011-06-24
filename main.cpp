@@ -200,10 +200,8 @@ private:
       grid.set(target.up(), EXPOSED_WATER);
     }
     else {
-      cout << "Didn't move any water!" << endl;
       return; //Didn't work
     }
-    cout << "Water moved!" << endl;
     grid.set(move, AIR); //Did work
   }
 public:
@@ -217,21 +215,12 @@ public:
           sort(exposed.begin(), exposed.end()); //Higher water is at the front.
           unique(exposed.begin(), exposed.end());
           
-          cout << "Exposed water blocks: ";
-          ostream_iterator<Coord> output(cout, " ");
-          copy(exposed.begin(), exposed.end(), output);
-          cout << endl;
-          
-
           /*
           Now we move some water.
           Exposed water at the top of the list is moved next to the exposed water
           at the bottom of the list.
           */
-          //const float viscocity = 0.8; //What proportion of the water will move to the bottom
-          //int count = viscocity*exposed.size();
-          //cout << "Will move " << count << " waters" << endl;
-          while (/*count-- &&*/ exposed.size() > 2) {
+          while (exposed.size() > 2) {
             move_water(orig_grid, exposed.front(), exposed.back());
             exposed.pop_front();
             exposed.pop_back();
