@@ -336,7 +336,7 @@ public:
       for (int y = 0; y < grid_size; y++) {
         switch (next.get(x, y, AIR)) {
           case CLONER:
-            if (now.get(x, y+1, ROCK) == AIR) {
+            if (now.get(x, y+1, ROCK) == AIR || now.get(x, y+1, ROCK) == CLONER) {
               next.set(x, y+1, now.get(x, y-1, CLONER));
             }
             break;
