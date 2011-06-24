@@ -352,11 +352,13 @@ public:
     }
   }
 
-  void update() {
-    memset(&next, 0, sizeof(CellGrid));
-    simple_physics_pass();
-    replicator_physics_pass();
-    fluid_sim.run(now);
+  void update(bool do_physics) {
+    next = now;
+    if (do_physics) {
+      simple_physics_pass();
+      replicator_physics_pass();
+      fluid_sim.run(now);
+    }
     toggle_parity();
   }
 
@@ -407,16 +409,17 @@ void app_loop(SDL_Surface *screen) {
   SandGrid grid;
   SDL_Event event;
   CellType place_type = SAND;
+  bool do_update = true;
 
   SDL_AddTimer(50, draw_timer_callback, NULL); //triggers a draw event every 50 ms
 
   while (SDL_WaitEvent(&event)) {
     switch (event.type) {
       case SDL_KEYDOWN:
-        {
-          if (event.key.keysym.unicode == L'q') {
-            return;
-          }
+        if (event.key.keysym.unicode == L'q') {
+          return;
+        }
+        else {
           CellType new_type = CellData::lookup(event.key.keysym.unicode);
           if (new_type != BAD_CELL_TYPE) {
             place_type = new_type;
@@ -424,6 +427,17 @@ void app_loop(SDL_Surface *screen) {
           }
         }
         break;
+
+      case SDL_KEYUP:
+        if (event.key.keysym.sym == SDLK_SPACE) {
+          do_update = !do_update;
+        }
+        if (event.key.keysym.sym == SDLK_PERIOD) {
+          if (!do_update) {
+            grid.update(true);
+            grid.draw(screen);
+          }
+        }
 
       case SDL_MOUSEMOTION:
       case SDL_MOUSEBUTTONDOWN:
@@ -450,7 +464,7 @@ void app_loop(SDL_Surface *screen) {
         break;
 
       case SDL_USEREVENT:
-        grid.update();
+        grid.update(do_update);
         grid.draw(screen);
         break;
 
