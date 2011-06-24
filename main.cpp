@@ -16,6 +16,32 @@
 using namespace std;
 
 
+struct Coord {
+  int x, y;
+  Coord(int X, int Y) : x(X), y(Y) {}
+  bool operator<(const Coord &b) const {
+    if (y == b.y) {
+      return x < b.x;
+    }
+    return y < b.y;
+  }
+
+  bool operator==(const Coord&b) const {
+    return x == b.x && y == b.y;
+  }
+
+  friend std::ostream& operator<<(std::ostream &fd, const Coord &r) {
+    fd << r.x << "," << r.y;
+    return fd;
+  }
+
+  Coord up() { return Coord(x, y+1); }
+  Coord down() { return Coord(x, y-1); }
+  Coord left() { return Coord(x-1, y); }
+  Coord right() { return Coord(x+1, y); }
+};
+
+
 
 
 class CellGrid {
@@ -50,6 +76,9 @@ public:
     }
   }
 
+  CellType get(Coord p, CellType default_type = ROCK) { return get(p.x, p.y, default_type); }
+  void set(Coord p, CellType c) { set(p.x, p.y, c); }
+
   void draw(SDL_Surface *surface) {
     for (int x = 0; x < grid_size; x++) {
       for (int y = 0; y < grid_size; y++) {
@@ -61,28 +90,6 @@ public:
         SDL_FillRect(surface, &rect, CellData::color(get(x, y)));
       }
     }
-  }
-
-};
-
-
-struct Coord {
-  int x, y;
-  Coord(int X, int Y) : x(X), y(Y) {}
-  bool operator<(const Coord &b) const {
-    if (y == b.y) {
-      return x < b.x;
-    }
-    return y < b.y;
-  }
-
-  bool operator==(const Coord&b) const {
-    return x == b.x && y == b.y;
-  }
-
-  friend std::ostream& operator<<(std::ostream &fd, const Coord &r) {
-    fd << r.x << "," << r.y;
-    return fd;
   }
 
 };
@@ -156,6 +163,49 @@ private:
     }
   }
 
+  static bool height_sorter(Coord a, Coord b) {
+    static char parity = 0;
+    if (a.y == b.y) {
+      parity++;
+      return (parity % 2) ? a.x < b.y : a.x > b.y;
+    }
+    return a.y < b.y;
+  }
+
+  inline void move_water(CellGrid &grid, Coord move, Coord target) {
+    //Try to move water to target
+    //Check that it isn't a lame movement
+    if (move.y + 1 >= target.y) return; 
+    //We need to be considerate of the order we check.
+    static char parity = 0;
+    parity++;
+    bool EVEN = parity % 2, ODD = !EVEN;
+    if (grid.get(target.down(), ROCK) == AIR) {
+      //(I don't expect this will happen ever?)
+      grid.set(target.down(), EXPOSED_WATER);
+    }
+    else if (EVEN && grid.get(target.left(), ROCK) == AIR) {
+      grid.set(target.left(), EXPOSED_WATER);
+    }
+    else if (EVEN && grid.get(target.right(), ROCK) == AIR) {
+      grid.set(target.right(), EXPOSED_WATER);
+    }
+    else if (ODD && grid.get(target.left(), ROCK) == AIR) {
+      grid.set(target.left(), EXPOSED_WATER);
+    }
+    else if (ODD && grid.get(target.right(), ROCK) == AIR) {
+      grid.set(target.right(), EXPOSED_WATER);
+    }
+    else if (grid.get(target.up(), ROCK) == AIR) {
+      grid.set(target.up(), EXPOSED_WATER);
+    }
+    else {
+      cout << "Didn't move any water!" << endl;
+      return; //Didn't work
+    }
+    cout << "Water moved!" << endl;
+    grid.set(move, AIR); //Did work
+  }
 public:
   void run(CellGrid &orig_grid) {
     src = orig_grid; //Make a copy
@@ -164,20 +214,33 @@ public:
         if (src.get(x, y) == EXPOSED_WATER) {
           exposed.clear();
           flood_fill(x, y);
-          sort(exposed.begin(), exposed.end());
+          sort(exposed.begin(), exposed.end()); //Higher water is at the front.
           unique(exposed.begin(), exposed.end());
+          
           cout << "Exposed water blocks: ";
           ostream_iterator<Coord> output(cout, " ");
           copy(exposed.begin(), exposed.end(), output);
           cout << endl;
+          
+
+          /*
+          Now we move some water.
+          Exposed water at the top of the list is moved next to the exposed water
+          at the bottom of the list.
+          */
+          //const float viscocity = 0.8; //What proportion of the water will move to the bottom
+          //int count = viscocity*exposed.size();
+          //cout << "Will move " << count << " waters" << endl;
+          while (/*count-- &&*/ exposed.size() > 2) {
+            move_water(orig_grid, exposed.front(), exposed.back());
+            exposed.pop_front();
+            exposed.pop_back();
+          }
         }
       }
     }
   }
 
-  static bool height_sorter(Coord a, Coord b) {
-    return a.y < b.y;
-  }
 };
 
 
