@@ -278,8 +278,7 @@ public:
     SDL_UpdateRect(surface, 0, 0, 0, 0); //updates entire screen. Economical!
   }
 
-  void update() {
-    memset(&next, 0, sizeof(CellGrid));
+  void simple_physics_pass() {
     for (int x = 0; x < grid_size; x++) {
       for (int y = 0; y < grid_size; y++) {
         CellType now_cell = now.get(x, y);
@@ -324,20 +323,39 @@ public:
               next_cell = AIR;
             }
             break;
+          case ROCK: break; //BORING
+          default: break;
+        }
+        next.set(x, y, next_cell);
+      }
+    }
+  }
+
+  void replicator_physics_pass() {
+    for (int x = 0; x < grid_size; x++) {
+      for (int y = 0; y < grid_size; y++) {
+        switch (next.get(x, y, AIR)) {
           case CLONER:
             next.set(x, y+1, now.get(x, y-1, CLONER));
             break;
           case DESTROYER:
             for (int dx = -1; dx != 2; dx++) {
               for (int dy = -1; dy != 2; dy++) {
+                if (dx == 0 && dy == 0) continue;
                 next.set(x+dx, y+dy, AIR);
               }
             }
-          case ROCK: break; //BORING
+            break;
+          default: break;
         }
-        next.set(x, y, next_cell);
       }
     }
+  }
+
+  void update() {
+    memset(&next, 0, sizeof(CellGrid));
+    simple_physics_pass();
+    replicator_physics_pass();
     fluid_sim.run(now);
     toggle_parity();
   }
