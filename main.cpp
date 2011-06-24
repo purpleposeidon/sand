@@ -101,45 +101,58 @@ private:
     }
   }
 
+  inline void push(int x, int y) {
+    branch.push(Coord(x, y));
+  }
+
+  inline void pop(int &x, int &y) {
+    Coord here = branch.top();
+    x = here.x, y = here.y;
+    branch.pop();
+  }
+
   void flood_fill(int x, int y) {
     //Use scanline flood fill aglorithm to locate EXPOSED_WATER edges
-    branch.push(Coord(x, y));
+    //This algorithm is From Somewhere on Siggraph.
+    add(x, y);
+    //We should be at an EXPOSED_WATER. Find the water we're covering.
+    push(x+1, y);
+    push(x-1, y);
+    push(x, y+1);
+    push(x, y-1);
     
     while (branch.size()) {
-      Coord top = branch.top();
-      branch.pop();
-      x = top.x, y = top.y;
+      pop(x, y);
       //jump to end
-      int y1 = y;
-      while (src.get(x, y1, AIR) == INACTIVE_WATER) y1--;
-      add(x, y1);
-      y1++;
+      while (src.get(x, y, AIR) == INACTIVE_WATER) y--;
+      add(x, y);
+      y++;
 
       bool span_left = false, span_right = false;
-      while (y1 < grid_size && src.get(x, y1, AIR) == INACTIVE_WATER) {
-        src.set(x, y1, ROCK);
-        add(x-1, y1);
-        add(x+1, y1);
+      while (y < grid_size && src.get(x, y, AIR) == INACTIVE_WATER) {
+        src.set(x, y, ROCK);
+        add(x-1, y);
+        add(x+1, y);
 
-        if (!span_left && src.get(x-1, y1, AIR) == INACTIVE_WATER) {
-          branch.push(Coord(x-1, y1));
+        if (!span_left && src.get(x-1, y, AIR) == INACTIVE_WATER) {
+          push(x-1, y);
           span_left = true;
         }
-        else if (span_left && src.get(x-1, y1, AIR) != INACTIVE_WATER) {
+        else if (span_left && src.get(x-1, y, AIR) != INACTIVE_WATER) {
           span_left = false;
         }
 
-        if (!span_right && src.get(x+1, y1, AIR) == INACTIVE_WATER) {
-          branch.push(Coord(x+1, y1));
+        if (!span_right && src.get(x+1, y, AIR) == INACTIVE_WATER) {
+          push(x+1, y);
           span_right = true;
         }
-        else if (span_right && src.get(x+1, y1, AIR) != INACTIVE_WATER) {
+        else if (span_right && src.get(x+1, y, AIR) != INACTIVE_WATER) {
           span_right = false;
         }
 
         y++;
       }
-      add(x, y1);
+      add(x, y);
     }
   }
 
@@ -281,7 +294,14 @@ public:
   void mouse_set(CellType cell_type) {
     int mouse_x, mouse_y;
     SDL_GetMouseState(&mouse_x, &mouse_y);
-    set(mouse_x/block_pixel_size, mouse_y/block_pixel_size, cell_type);
+    mouse_x /= block_pixel_size;
+    mouse_y /= block_pixel_size;
+    if (cell_type == BAD_CELL_TYPE) {
+      cout << "Mouse at: " << mouse_x << "," << mouse_y << endl;
+      SDL_Delay(1000);
+      return;
+    }
+    set(mouse_x, mouse_y, cell_type);
   }
 };
 
@@ -339,9 +359,11 @@ void app_loop(SDL_Surface *screen) {
             //Use the previous type
             grid.mouse_set(place_type);
           }
-          else if (mouse_button == SDL_BUTTON_RIGHT
-              || mouse_button == SDL_BUTTON_MIDDLE) {
+          else if (mouse_button == SDL_BUTTON_MIDDLE) {
             grid.mouse_set(AIR);
+          }
+          else if (mouse_button == SDL_BUTTON_RIGHT) {
+            grid.mouse_set(BAD_CELL_TYPE);
           }
         }
         break;
