@@ -28,8 +28,7 @@ std::ostream& operator<<(std::ostream &fd, const Coord &r) {
   return fd;
 }
 
-//These are totally correct.
-Coord Coord::up() { return Coord(x, y+1); }
-Coord Coord::down() { return Coord(x, y-1); }
+Coord Coord::up() { return Coord(x, y-1); }
+Coord Coord::down() { return Coord(x, y+1); }
 Coord Coord::left() { return Coord(x-1, y); }
 Coord Coord::right() { return Coord(x+1, y); }
