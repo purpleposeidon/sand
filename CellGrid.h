@@ -44,6 +44,7 @@ struct CellBox {
 public:
   CellType up, down, left, right;
   CellBox(CellGrid &src, Coord w);
+  CellBox(CellGrid &src, Coord w, CellType d_up, CellType d_down, CellType d_left, CellType d_right);
   bool any(CellType c);
   bool all(CellType c);
   int count(CellType c);

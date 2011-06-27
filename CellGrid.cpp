@@ -82,7 +82,7 @@ int normalize_angle(int r) {
 void CellGrid::draw_active_water(Coord here) {
   //Draw the water located at 'here' to water_surface
   //...fancy!
-  CellBox cell = CellBox(*this, here);
+  CellBox cell = CellBox(*this, here, AIR, ROCK, INACTIVE_WATER, INACTIVE_WATER);
   int exposed_count = cell.count(EXPOSED_WATER);
   int inactive_count = cell.count(INACTIVE_WATER);
   int air_count = cell.count(AIR);
@@ -272,6 +272,16 @@ CellBox::CellBox(CellGrid &src, Coord w) {
   left = src.get(w.left());
   right = src.get(w.right());
 }
+
+
+CellBox::CellBox(CellGrid &src, Coord w, CellType d_up, CellType d_down, CellType d_left, CellType d_right) {
+  up = src.get(w.up(), d_up);
+  down = src.get(w.down(), d_down);
+  left = src.get(w.left(), d_left);
+  right = src.get(w.right(), d_right);
+}
+
+
 
 int CellBox::count(CellType c) {
   //rename 'sum'? We like 3-letter words...
