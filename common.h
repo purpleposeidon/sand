@@ -3,6 +3,7 @@
 #define COMMON_H
 
 #include <iostream>
+#include <SDL/SDL.h>
 
 
 const int grid_size = 80/4;
@@ -28,6 +29,8 @@ struct Coord {
   Coord left();
   Coord right();
 };
+
+void retardo_flood_fill(SDL_Surface *surface, int x, int y, Uint32 color);
 
 #endif /* COMMON_H */
 

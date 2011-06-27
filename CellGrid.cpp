@@ -43,17 +43,21 @@ inline int rotate_co(int i) {
   return i-1;
 }
 
+inline int opposite(int i) {
+  return (i+4) % 8;
+}
+
 inline float horizontal(int i) {
-  if (i == 7 || i == 6 || i == 5) return 0.0+0.1;
+  if (i == 7 || i == 6 || i == 5) return 0.0;
   if (i == 0 || i == 4) return 0.5;
-  if (i == 1 || i == 2 || i == 3) return 1.0-0.1;
+  if (i == 1 || i == 2 || i == 3) return 1.0;
   throw i;
 }
 
 inline float vertical(int i) {
-  if (i == 7 || i == 0 || i == 1) return 1.0-0.1;
+  if (i == 7 || i == 0 || i == 1) return 0.0;
   if (i == 6 || i == 2) return 0.5;
-  if (i == 5 || i == 4 || i == 3) return 0.0+0.1;
+  if (i == 5 || i == 4 || i == 3) return 1.0;
   throw i;
 }
 
@@ -85,9 +89,11 @@ void CellGrid::draw_active_water(Coord here) {
 
   //We draw either a bubble, or a wave.
   bool draw_bubble = true;
-  //These are NumPad directions, for drawing waves.
-  //p1 and p2 indicate what the lines will be drawn through.
+  //These are directions, for drawing waves.
+  //a1 and a2 indicate what the lines will be drawn through.
   int a1 = -1, a2 = -1;
+  //'under' indicates what part is under water
+  int under = -1;
  
 
   //Determine how to proceed
@@ -96,8 +102,8 @@ void CellGrid::draw_active_water(Coord here) {
     int d = cell.find(INACTIVE_WATER);
     a1 = rotate_cc(d);
     a2 = rotate_co(d);
+    under = d;
     draw_bubble = false;
-    std::cout << "Tower!" << std::endl;
   }
   else if (air_count == 2 && exposed_count == 1 && inactive_count == 1) {
     int e = cell.find(EXPOSED_WATER), i = cell.find(INACTIVE_WATER);
@@ -106,39 +112,54 @@ void CellGrid::draw_active_water(Coord here) {
       //opposite
       a1 = rotate_cc(i);
       a2 = rotate_co(i);
+      under = i;
     }
     else if (ei_angle == 2 || ei_angle == 6) {
       //adjacent
-      if (ei_angle == 2) {
-        a1 = rotate_co(e);
+      a1 = e;
+      under = i;
+      //a2 is i rotated away from a1
+      if (ei_angle == 6) {
+        a2 = rotate_cc(i);
       }
       else {
-        a1 = rotate_co(e);
+        a2 = rotate_co(i);
       }
-      a2 = i;
     }
     else {
       throw ei_angle;
     }
     draw_bubble = false;
   }
-  else if (air_count == 1 && exposed_count == 1 && inactive_count == 2) {
-    int i1 = cell.find(EXPOSED_WATER, 0), i2 = cell.find(EXPOSED_WATER, 1);
-    if (normalize_angle(angle(i1, i2)) == 4) {
+  else if (air_count == 1 && exposed_count == 2 && inactive_count == 1) {
+    int e1 = cell.find(EXPOSED_WATER, 0), e2 = cell.find(EXPOSED_WATER, 1);
+    if (normalize_angle(angle(e1, e2)) == 4) {
       //We've got two exposeds opposite, with an inactive on one side
       //put the line between the two inactives
-      a1 = i1;
-      a2 = i2;
+      a1 = e1;
+      a2 = e2;
       draw_bubble = false;
+      under = cell.find(INACTIVE_WATER);
     }
   }
-  else if (air_count == 1 && exposed_count == 2 && inactive_count == 1) {
+  else if (air_count == 1 && exposed_count == 1 && inactive_count == 2) {
     //similiar to above, except we want two inactives adjacent
     int i1 = cell.find(INACTIVE_WATER, 0), i2 = cell.find(INACTIVE_WATER, 1);
-    if (normalize_angle(angle(i1, i2)) == 2) {
-      a1 = i1;
-      a2 = i2;
+    int n = normalize_angle(angle(i1, i2));
+    if (n == 2 || n == 6) {
       draw_bubble = false;
+      int e = cell.find(EXPOSED_WATER);
+      int between = opposite(cell.find_air());
+      a1 = e;
+      a2 = opposite(e);
+      under = between;
+      int direction = normalize_angle(angle(between, a2));
+      if (direction == 6) {
+        a2 = rotate_cc(a2);
+      }
+      else {
+        a2 = rotate_co(a2);
+      }
     }
   }
   
@@ -148,8 +169,7 @@ void CellGrid::draw_active_water(Coord here) {
   int seed = (here.x << here.y) + (ticks/15); //used for RNG
   const Uint32 surface_color = CellData::color(EXPOSED_WATER);
   const Uint32 under_water = CellData::color(INACTIVE_WATER);
-  //SDL_FillRect(water_surface, NULL, CellData::color(AIR));
-  SDL_FillRect(water_surface, NULL, CellData::color(SAND));
+  SDL_FillRect(water_surface, NULL, CellData::color(AIR));
 
   if (draw_bubble) {
     if (air_count == 4) {
@@ -190,13 +210,35 @@ void CellGrid::draw_active_water(Coord here) {
   else {
     //TODO: Fancy bezier drawing
     //bezierColor(water_surface, vx, vy, n, 5, surface_color);
+    int x1 = horizontal(a1)*block_pixel_size;
+    int y1 = vertical(a1)*block_pixel_size;
+    int x2 = horizontal(a2)*block_pixel_size;
+    int y2 = vertical(a2)*block_pixel_size;
+    int xm = 0.5*block_pixel_size;
+    int ym = 0.5*block_pixel_size;
     aalineColor(water_surface,
-      vertical(a1)*block_pixel_size, horizontal(a1)*block_pixel_size,
-      vertical(a2)*block_pixel_size, horizontal(a2)*block_pixel_size,
+      x1, y1,
+      xm, ym,
       surface_color);
+    aalineColor(water_surface,
+      xm, ym,
+      x2, y2,
+      surface_color);
+    if (under != -1) {
+      //dump water
+      int xf = ((0.5+horizontal(under))/2.0)*block_pixel_size;
+      int yf = ((0.5+vertical(under))/2.0)*block_pixel_size;
+      retardo_flood_fill(water_surface, xf, yf, under_water);
+      //filledCircleRGBA(water_surface, xf, yf, 3, 0xFF, 0xFF, 0xFF, 0xFF); //where we flood fill from
+    }
+    else {
+      std::cerr << "Note: 'under' not set." << std::endl;
+    }
   }
 
 }
+
+
 
 
 void CellGrid::draw(SDL_Surface *surface) {
@@ -245,39 +287,29 @@ bool CellBox::all(CellType c) {
 }
 
 int CellBox::find(CellType c, int skip) {
-  int result_angle;
-  do {
-    result_angle = -1;
-    for (int angle = 0; angle < 8; angle += 2) {
-      if (c == get(angle)) {
-        result_angle = angle;
-        break;
+  for (int angle = 0; angle < 8; angle += 2) {
+    if (get(angle) == c) {
+      if (skip == 0) {
+        return angle;
       }
+      skip--;
     }
-    if (result_angle == -1) {
-      //not here
-      return -1;
-    }
-  } while (skip--);
-  return result_angle;
+  } 
+
+  return -1;
 }
 
 int CellBox::find_air(int skip) {
-  int result_angle;
-  do {
-    result_angle = -1;
-    for (int angle = 0; angle < 8; angle += 2) {
-      if (get(angle) != EXPOSED_WATER && get(angle) != INACTIVE_WATER) {
-        result_angle = angle;
-        break;
+  for (int angle = 0; angle < 8; angle += 2) {
+    if (get(angle) != EXPOSED_WATER && get(angle) != INACTIVE_WATER) {
+      if (skip == 0) {
+        return angle;
       }
-    }  
-    if (result_angle == -1) {
-      //not here
-      return -1;
-    } 
-  } while (skip--);
-  return result_angle;
+      skip--;
+    }
+  } 
+
+  return -1;
 }
 
 CellType CellBox::get(int d) {
