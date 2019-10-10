@@ -7,7 +7,7 @@ LIBS = $(shell sdl-config --libs) -lSDL_gfx
 all: sand
 
 sand: sand_objects
-	$(CPP) $(LIBS) -o sand *.o
+	$(CPP) -o sand *.o $(LIBS)
 
 sand_objects: CellData.o main.o common.o CellGrid.o Physics.o main.o
 
